@@ -1,8 +1,10 @@
 package lead
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/hamza-s47/crm/database"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/hamza-s47/sqlite-integration-in-go/database"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
@@ -15,59 +17,56 @@ type Lead struct {
 	Phone   string `gorm:"default:'Not provided'" json:"phone"`
 }
 
-func GetLeads(c *fiber.Ctx) error {
+func GetLeads(c *gin.Context) {
 	db := database.DBConn
 	var leads []Lead
 	if err := db.Find(&leads).Error; err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "Failed to fetch leads",
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch leads"})
+		return
 	}
-	return c.JSON(leads)
+	c.JSON(http.StatusOK, leads)
 }
 
-func GetLead(c *fiber.Ctx) error {
-	id := c.Params("id")
+func GetLead(c *gin.Context) {
+	id := c.Param("id")
 	db := database.DBConn
 	var lead Lead
 	if err := db.Find(&lead, id).Error; err != nil {
-		return c.Status(404).JSON(fiber.Map{
-			"error": "Lead not found",
-		})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Lead not found"})
+		return
 	}
-	return c.JSON(lead)
+	c.JSON(http.StatusOK, lead)
 }
 
-func NewLead(c *fiber.Ctx) error {
+func NewLead(c *gin.Context) {
 	db := database.DBConn
 	lead := new(Lead)
 
-	if err := c.BodyParser(lead); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+	if err := c.ShouldBindJSON(lead); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid request body",
 		})
+		return
 	}
 
-	if err := db.Create(&lead).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+	if err := db.Create(lead).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to create lead",
 		})
+		return
 	}
-	return c.Status(fiber.StatusCreated).JSON(lead)
+
+	c.JSON(http.StatusCreated, lead)
 }
 
-func DeleteLead(c *fiber.Ctx) error {
-	id := c.Params("id")
+func DeleteLead(c *gin.Context) {
+	id := c.Param("id")
 	db := database.DBConn
 
 	var lead Lead
 	if err := db.Where("ID=?", id).Delete(&lead).Error; err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "Failed to delete lead",
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete lead"})
+		return
 	}
-	return c.JSON(fiber.Map{
-		"Message": "Lead deleted successfully!",
-		"status":  "200",
-	})
+	c.JSON(http.StatusOK, gin.H{"Message": "Lead deleted successfully!", "status": "200"})
 }

@@ -3,17 +3,17 @@ package main
 import (
 	"log"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/hamza-s47/crm/database"
-	"github.com/hamza-s47/crm/lead"
+	"github.com/gin-gonic/gin"
+	"github.com/hamza-s47/sqlite-integration-in-go/database"
+	"github.com/hamza-s47/sqlite-integration-in-go/lead"
 	"github.com/jinzhu/gorm"
 )
 
-func setupRoutes(app *fiber.App) {
-	app.Get("/api/v1/lead", lead.GetLeads)
-	app.Get("/api/v1/lead/:id", lead.GetLead)
-	app.Post("/api/v1/lead", lead.NewLead)
-	app.Delete("/api/v1/lead/:id", lead.DeleteLead)
+func setupRoutes(app *gin.Engine) {
+	app.GET("/api/v1/lead", lead.GetLeads)
+	app.GET("/api/v1/lead/:id", lead.GetLead)
+	app.POST("/api/v1/lead", lead.NewLead)
+	app.DELETE("/api/v1/lead/:id", lead.DeleteLead)
 }
 
 func initDatabase() {
@@ -28,9 +28,9 @@ func initDatabase() {
 }
 
 func main() {
-	app := fiber.New()
+	app := gin.Default()
 	initDatabase()
 	setupRoutes(app)
-	app.Listen(":9020")
+	app.Run(":8080")
 	defer database.DBConn.Close()
 }
